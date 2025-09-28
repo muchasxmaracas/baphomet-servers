@@ -1,18 +1,20 @@
 #cloud-config
 package_update: true
 package_upgrade: true
+
 packages:
+  - git
   - curl
   - wget
-  - git
-  - ufw
-  - fail2ban
-  - nginx
-  - docker.io
-  - docker-compose
-  - apt-transport-https
+  - net-tools
   - ca-certificates
   - software-properties-common
+  - ufw
+  - aide
+  - chrony
+  - logrotate
+  - gnupg
+  - lsb-release
 
 groups:
   - docker
@@ -30,6 +32,22 @@ runcmd:
   - ufw allow OpenSSH
   - ufw allow 'Nginx Full'
   - ufw --force enable
+
+   # Retry apt installs (prevents lock issues on first boot)
+  - |
+    for i in {1..5}; do
+      apt-get update && \
+      apt-get install -y nginx && \
+      break || sleep 10
+    done
+
+  # Install Docker from official repo
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
   # Enable and start services
   - systemctl enable nginx
