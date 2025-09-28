@@ -40,7 +40,7 @@ resource "aws_route53_record" "ipv4" {
   name    = "services.baphomet.cloud"
   type    = "A"
   ttl     = 300
-  records = hcloud_server.baphomet-services.ipv4_address
+  records = [hcloud_server.baphomet-services.ipv4_address]
 }
 
 resource "aws_route53_record" "ipv6" {
@@ -48,5 +48,5 @@ resource "aws_route53_record" "ipv6" {
   name    = "services.baphomet.cloud"
   type    = "AAAA"
   ttl     = 300
-  records = hcloud_server.baphomet-services.ipv6_address
+  records = [hcloud_server.baphomet-services.ipv6_address]
 }
