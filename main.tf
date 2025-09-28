@@ -36,7 +36,7 @@ resource "hcloud_rdns" "master" {
 }
 
 resource "aws_route53_record" "ipv4" {
-  zone_id = Z00476003F8RX1KPNHHY4
+  zone_id = "Z00476003F8RX1KPNHHY4"
   name    = "services.baphomet.cloud"
   type    = "A"
   ttl     = 300
@@ -44,7 +44,7 @@ resource "aws_route53_record" "ipv4" {
 }
 
 resource "aws_route53_record" "ipv6" {
-  zone_id = Z00476003F8RX1KPNHHY4
+  zone_id = "Z00476003F8RX1KPNHHY4"
   name    = "services.baphomet.cloud"
   type    = "AAAA"
   ttl     = 300
