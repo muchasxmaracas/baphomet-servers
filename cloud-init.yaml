@@ -1,79 +1,47 @@
 #cloud-config
-
-hostname: baphomet-services
-fqdn: services.baphomet.cloud
-
 package_update: true
 package_upgrade: true
-debug: true
+packages:
+  - curl
+  - wget
+  - git
+  - ufw
+  - fail2ban
+  - nginx
+  - docker.io
+  - docker-compose
+  - apt-transport-https
+  - ca-certificates
+  - software-properties-common
 
-write_files:
-  - path: /etc/ssh/sshd_config.d/90-no-password-login.conf
-    permissions: '0644'
-    content: |
-      PasswordAuthentication no
-      PermitRootLogin prohibit-password
-
-system_info:
-  default_user:
-    name: root
+groups:
+  - docker
 
 users:
   - name: sysadmin
+    groups: sudo, docker
     shell: /bin/bash
-    sudo: "ALL=(ALL) NOPASSWD:ALL"
-    groups: users, sudo, docker
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwFFwMTkt/my sandro@sandros-MacBook-Pro.local
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKC6jxq2Lbiwe4cjcB8itTmh4a6ldDR6KVGSM2PvrZwb sandro@DESKTOP-E6TGITL
-
-packages:
-  - git
-  - curl
-  - wget
-  - net-tools
-  - ca-certificates
-  - software-properties-common
-  - ufw
-  - aide
-  - chrony
-  - logrotate
-  - gnupg
-  - lsb-release
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwMTkt/my sandro@sandros-MacBook-Pro.local
 
 runcmd:
-  # Reload SSH with hardened config
-  - systemctl reload sshd
-
-  # Firewall configuration
-  - ufw default deny incoming
-  - ufw default allow outgoing
-  - ufw allow 22/tcp
-  - ufw allow 80/tcp
-  - ufw allow 443/tcp
-  - echo "y" | ufw enable
-
-  # Retry apt installs (prevents lock issues on first boot)
-  - |
-    for i in {1..5}; do
-      apt-get update && \
-      apt-get install -y nginx && \
-      break || sleep 10
-    done
-
-  # Install Docker from official repo
-  - install -m 0755 -d /etc/apt/keyrings
-  - curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  - chmod a+r /etc/apt/keyrings/docker.gpg
-  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-  - apt-get update
-  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  # UFW firewall setup
+  - ufw allow OpenSSH
+  - ufw allow 'Nginx Full'
+  - ufw --force enable
 
   # Enable and start services
   - systemctl enable nginx
   - systemctl start nginx
   - systemctl enable docker
-  - usermod -aG docker sysadmin
+  - systemctl start docker
 
   # Initialize AIDE
   - aideinit
+
+power_state:
+  mode: reboot
+  message: "Rebooting after cloud-init finished"
+  timeout: 30
+  condition: True
