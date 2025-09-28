@@ -28,10 +28,10 @@ packages:
   - net-tools
   - ca-certificates
   - software-properties-common
-  - **ufw** # Uncomplicated Firewall (Crucial)
-  - **aide** # Advanced Intrusion Detection Environment
-  - **chrony** # Better time synchronization than systemd-timesyncd
-  - **logrotate** # Log file management
+  - ufw # Uncomplicated Firewall (Crucial)
+  - aide # Advanced Intrusion Detection Environment
+  - chrony # Better time synchronization than systemd-timesyncd
+  - logrotate # Log file management
   
 # --- 4. Disable Password SSH Login (CRITICAL SECURITY STEP) ---
 write_files:
