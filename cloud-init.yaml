@@ -1,24 +1,23 @@
 #cloud-config
 
-# --- 1. System Identity and Updates ---
 hostname: baphomet-services
 fqdn: services.baphomet.cloud
 
 package_update: true
 package_upgrade: true
 
-# --- 2. User Creation and SSH Key Setup ---
+# --- User Creation and SSH Key Setup ---
 users:
   - name: sysadmin
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD: ALL
     groups: users, admin, docker
-    # Your SSH keys (already set up securely)
+    # Your SSH keys (keys are truncated here for display)
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwMTkt/my sandro@sandros-MacBook-Pro.local
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKC6jxq2Lbiwe4cjcB8itTmh4a6ldDR6KVGSM2PvrZwb sandro@DESKTOP-E6TGITL
 
-# --- 3. Package Installation (Added UFW, AIDE, and Chrony) ---
+# --- Package Installation ---
 packages:
   - git
   - curl
@@ -28,12 +27,12 @@ packages:
   - net-tools
   - ca-certificates
   - software-properties-common
-  - ufw # Uncomplicated Firewall (Crucial)
-  - aide # Advanced Intrusion Detection Environment
-  - chrony # Better time synchronization than systemd-timesyncd
-  - logrotate # Log file management
+  - ufw
+  - aide
+  - chrony
+  - logrotate
   
-# --- 4. Disable Password SSH Login (CRITICAL SECURITY STEP) ---
+# --- Write Files (CRITICAL FIX: Clean Indentation) ---
 write_files:
   - path: /etc/ssh/sshd_config.d/90-no-password-login.conf
     permissions: '0644'
@@ -42,33 +41,26 @@ write_files:
       PasswordAuthentication no
       PermitRootLogin prohibit-password
 
-# --- 5. Command Execution (Added Firewall and Hardening) ---
+# --- Command Execution ---
 runcmd:
-  # --- Firewall Configuration (CRITICAL) ---
-  # Set default policies to deny incoming, allow outgoing
+  # --- Firewall Configuration ---
   - ufw default deny incoming
   - ufw default allow outgoing
-  # Allow SSH (Port 22)
   - ufw allow 22/tcp
-  # Allow HTTP (Port 80) and HTTPS (Port 443) for Nginx
   - ufw allow 80/tcp
   - ufw allow 443/tcp
-  # Enable UFW - this is the point of no return for initial connection
   - echo "y" | ufw enable
   
   # --- Service Configuration ---
   - systemctl enable nginx
   - systemctl start nginx
-  
-  # Configure Docker and add user to group
   - systemctl enable docker
   - usermod -aG docker sysadmin
 
-  # RESTART SSH: Apply the new configuration (PasswordAuthentication no)
+  # RESTART SSH: This will now apply the file created above
   - systemctl restart ssh
 
   # --- System Hardening ---
-  # Initialize the AIDE security database (for file integrity checks later)
   - /usr/bin/aideinit
 
   # Clean up cloud-init files
