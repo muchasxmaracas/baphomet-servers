@@ -5,6 +5,7 @@ fqdn: services.baphomet.cloud
 
 package_update: true
 package_upgrade: true
+debug: true
 
 write_files:
   - path: /etc/ssh/sshd_config.d/90-no-password-login.conf
@@ -13,10 +14,14 @@ write_files:
       PasswordAuthentication no
       PermitRootLogin prohibit-password
 
+system_info:
+  default_user:
+    name: root
+
 users:
   - name: sysadmin
     shell: /bin/bash
-    sudo: ALL=(ALL) NOPASSWD: ALL
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
     groups: users, sudo, docker
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwFFwMTkt/my sandro@sandros-MacBook-Pro.local
@@ -26,8 +31,6 @@ packages:
   - git
   - curl
   - wget
-  - nginx
-  - docker.io
   - net-tools
   - ca-certificates
   - software-properties-common
@@ -35,10 +38,14 @@ packages:
   - aide
   - chrony
   - logrotate
+  - gnupg
+  - lsb-release
 
 runcmd:
+  # Reload SSH with hardened config
   - systemctl reload sshd
 
+  # Firewall configuration
   - ufw default deny incoming
   - ufw default allow outgoing
   - ufw allow 22/tcp
@@ -46,9 +53,27 @@ runcmd:
   - ufw allow 443/tcp
   - echo "y" | ufw enable
 
+  # Retry apt installs (prevents lock issues on first boot)
+  - |
+    for i in {1..5}; do
+      apt-get update && \
+      apt-get install -y nginx && \
+      break || sleep 10
+    done
+
+  # Install Docker from official repo
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - chmod a+r /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # Enable and start services
   - systemctl enable nginx
   - systemctl start nginx
   - systemctl enable docker
   - usermod -aG docker sysadmin
 
+  # Initialize AIDE
   - aideinit
