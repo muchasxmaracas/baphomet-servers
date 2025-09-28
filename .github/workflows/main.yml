@@ -1,0 +1,104 @@
+name: "Terraform Infrastructure Change Management Pipeline with GitHub Actions"
+
+on:
+  push:
+    branches:
+      - 'main'
+
+  pull_request:
+    branches:
+      - 'main'
+
+env:
+  TF_LOG: ERROR
+  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+  #TF_VAR_route53_hosted_zone_id: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
+  TF_VAR_hcloud_s3_access_key: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+  TF_VAR_hcloud_s3_secret_key: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
+
+jobs:
+  terraform:
+    name: "Terraform Infrastructure Change Management"
+    runs-on: tenki-standard-autoscale
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    defaults:
+      run:
+        shell: bash
+        working-directory: ./
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.8.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform init
+        id: init
+        run: terraform init -backend-config=access_key=${{ env.TF_VAR_hcloud_s3_access_key }} -backend-config=secret_key=${{ env.TF_VAR_hcloud_s3_secret_key }}
+
+      - name: Run Terraform checks
+        id: checks
+        run: |
+
+          terraform fmt && terraform fmt -check
+          terraform validate
+
+      - name: Terraform plan
+        id: plan
+        run: terraform plan
+
+      - uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: ${{ steps.plan.outputs.stdout }}
+        with:
+          script: |
+
+            const emoji = (status) => {
+              switch(status) {
+                case 'success': return '✅';
+                case 'failure': return '❌';
+                case 'skipped': return '⚠️';
+                default: return '❓';
+              }
+            };
+            
+            const output = `### Terraform CI Summary
+            
+            **Initialization:** ${emoji('${{ steps.init.outcome }}')} \`${{ steps.init.outcome }}\` 
+            **Validation & Format:** ${emoji('${{ steps.checks.outcome }}')} \`${{ steps.checks.outcome }}\` 
+            **Plan:** ${emoji('${{ steps.plan.outcome }}')} \`${{ steps.plan.outcome }}\` 
+            
+            <details>
+            <summary>Show Terraform Plan</summary>
+            
+            \`\`\`
+            ${process.env.PLAN}
+            \`\`\`
+            </details>
+            
+            *Pushed by @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false
