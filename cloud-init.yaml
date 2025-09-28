@@ -6,18 +6,22 @@ fqdn: services.baphomet.cloud
 package_update: true
 package_upgrade: true
 
-# --- User Creation and SSH Key Setup ---
+write_files:
+  - path: /etc/ssh/sshd_config.d/90-no-password-login.conf
+    permissions: '0644'
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin prohibit-password
+
 users:
   - name: sysadmin
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD: ALL
-    groups: users, admin, docker
-    # Your SSH keys (keys are truncated here for display)
+    groups: users, sudo, docker
     ssh_authorized_keys:
-      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwMTkt/my sandro@sandros-MacBook-Pro.local
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwFFwMTkt/my sandro@sandros-MacBook-Pro.local
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKC6jxq2Lbiwe4cjcB8itTmh4a6ldDR6KVGSM2PvrZwb sandro@DESKTOP-E6TGITL
 
-# --- Package Installation ---
 packages:
   - git
   - curl
@@ -31,37 +35,20 @@ packages:
   - aide
   - chrony
   - logrotate
-  
-# --- Write Files (CRITICAL FIX: Clean Indentation) ---
-write_files:
-  - path: /etc/ssh/sshd_config.d/90-no-password-login.conf
-    permissions: '0644'
-    content: |
-      # Enforce key-only login by disabling password authentication
-      PasswordAuthentication no
-      PermitRootLogin prohibit-password
 
-# --- Command Execution ---
 runcmd:
-  # --- Firewall Configuration ---
+  - systemctl reload sshd
+
   - ufw default deny incoming
   - ufw default allow outgoing
   - ufw allow 22/tcp
   - ufw allow 80/tcp
   - ufw allow 443/tcp
   - echo "y" | ufw enable
-  
-  # --- Service Configuration ---
+
   - systemctl enable nginx
   - systemctl start nginx
   - systemctl enable docker
   - usermod -aG docker sysadmin
 
-  # RESTART SSH: This will now apply the file created above
-  - systemctl restart ssh
-
-  # --- System Hardening ---
-  - /usr/bin/aideinit
-
-  # Clean up cloud-init files
-  - cloud-init clean --logs
+  - aideinit
