@@ -34,3 +34,19 @@ resource "hcloud_rdns" "master" {
   ip_address = hcloud_server.baphomet-services.ipv4_address
   dns_ptr    = "services.baphomet.cloud"
 }
+
+resource "aws_route53_record" "ipv4" {
+  zone_id = Z00476003F8RX1KPNHHY4
+  name    = "services.baphomet.cloud"
+  type    = "A"
+  ttl     = 300
+  records = hcloud_server.baphomet-services.ipv4_address
+}
+
+resource "aws_route53_record" "ipv6" {
+  zone_id = Z00476003F8RX1KPNHHY4
+  name    = "services.baphomet.cloud"
+  type    = "AAAA"
+  ttl     = 300
+  records = hcloud_server.baphomet-services.ipv6_address
+}
