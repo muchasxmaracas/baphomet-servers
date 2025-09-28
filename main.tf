@@ -14,6 +14,10 @@ resource "hcloud_server" "baphomet-services" {
     server_type = "cx22"
     datacenter  = "fsn1-dc14"
     user_data = file("cloud-init.yaml")
+    
+    # CRITICAL ADDITION: Explicitly link the SSH key resource
+    ssh_keys = [hcloud_ssh_key.main.name] 
+    
     public_net {
         ipv4_enabled = true
         ipv6_enabled = true
