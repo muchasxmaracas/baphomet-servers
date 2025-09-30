@@ -20,12 +20,16 @@ groups:
   - docker
 
 users:
+  # The sysadmin user is granted full, passwordless sudo access.
   - name: sysadmin
     groups: sudo, docker
     shell: /bin/bash
+    home_dir: /home/sysadmin
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwMTkt/my sandro@sandros-MacBook-Pro.local
+      # Key for GitHub Action
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDVJBCPLHbu2bBVaeXnaK0BD9pCA/Mwms0u3Etl/6gZ7BUeg4tm4YiQ+eLcIUALPfkaBW8crZCz+6JRjz8LUzB8QvBVcdAeUc4XoEdeSRRUwbdtPXB8AkDovyIkR5uvL3goeIye0fOl6IiXYgDP+5wNGIfd9y9BjK+93dtk93eH8qinNSisJn9YEqnYfd/0ghcASRn7q0MmMkdX8h7qi5mFrTsxJKEcT4/W30hfqSiTZ9ZVoI52MLtexDIAXAgKothUo83xHcAHSjm4SkmESAIDYwA0BPDn8mzXMuJm8z7WN/rwomRjAAPSnb2NF9F6trGty0oky7WQFtNYxRV9fEaL0QH5h1NWc0VMr6Lui0wyJ2l9Hgro1JNDt6ckhfn8MRGfa6wvTftEfgpRkp+bWzEPGlVsbnRNcwXKdbxXmyhwmCb4NXL8cwvPRRmr4am+Ccrhr7BmtWv5t8C4A2Ry33jC9whxIj3l/1NP9BGeUm/yKvrLXl2py9OoBKtYkGPLkGL7sP0ZTg7lFXdSYVCDNy/Ft0tZZpoagbT5NS6dg5L6xNgU+u5mDfc6t6EKGVZmWLNEo5mJcQsneCZ3ErjXnUC1/jxkP2tCbVGFP76/4230sQ5adaXIqXzvpaEta/aOoLb8EKX4Wgc6diQOiiBldii4aIaWmLaj3CCSn8w9gnXFqw== sandro@sandros-MacBook-Pro.local
 
 runcmd:
   # UFW firewall setup
@@ -33,7 +37,7 @@ runcmd:
   - ufw allow 'Nginx Full'
   - ufw --force enable
 
-   # Retry apt installs (prevents lock issues on first boot)
+  # Retry apt installs (prevents lock issues on first boot)
   - |
     for i in {1..5}; do
       apt-get update && \
@@ -48,6 +52,32 @@ runcmd:
   - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
   - apt-get update
   - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  
+  # --- Sudo-Less Command Setup (Shell Aliases) ---
+  # This section ensures that common admin commands automatically run with 'sudo'
+  # when the 'sysadmin' user logs in interactively.
+  - |
+    # Create the .bash_aliases file for sysadmin
+    ALIAS_FILE="/home/sysadmin/.bash_aliases"
+    
+    # 1. Define common aliases to automatically use sudo
+    echo "# Custom Sudo-Less Aliases" > ${ALIAS_FILE}
+    echo "alias apt='sudo apt'" >> ${ALIAS_FILE}
+    echo "alias ufw='sudo ufw'" >> ${ALIAS_FILE}
+    echo "alias systemctl='sudo systemctl'" >> ${ALIAS_FILE}
+    echo "alias service='sudo service'" >> ${ALIAS_FILE}
+    
+    # 2. Ensure the aliases file is loaded by bash
+    BASHRC_FILE="/home/sysadmin/.bashrc"
+    grep -qxF 'if [ -f ~/.bash_aliases ]; then . ~/.bash_aliases; fi' ${BASHRC_FILE} || echo -e "\nif [ -f ~/.bash_aliases ]; then . ~/.bash_aliases; fi" >> ${BASHRC_FILE}
+    
+    # 3. Correct ownership for the sysadmin user (CRITICAL)
+    chown sysadmin:sysadmin ${ALIAS_FILE} ${BASHRC_FILE}
+    
+    # 4. Give sysadmin access to Docker right away
+    usermod -aG docker sysadmin
+  # --- END Sudo-Less Command Setup ---
+
 
   # Enable and start services
   - systemctl enable nginx
