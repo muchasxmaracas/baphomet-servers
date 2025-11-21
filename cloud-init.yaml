@@ -28,6 +28,7 @@ users:
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     ssh_authorized_keys:
       - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIBYt98G/lAhpNxBLY1JAGZcHSbMTuBJHwFFwMTkt/my sandro@sandros-MacBook-Pro.local
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKC6jxq2Lbiwe4cjcB8itTmh4a6ldDR2KVGSM2PvrZwb sandro@DESKTOP-E6TGITL
       # Key for GitHub Action
       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDVJBCPLHbu2bBVaeXnaK0BD9pCA/Mwms0u3Etl/6gZ7BUeg4tm4YiQ+eLcIUALPfkaBW8crZCz+6JRjz8LUzB8QvBVcdAeUc4XoEdeSRRUwbdtPXB8AkDovyIkR5uvL3goeIye0fOl6IiXYgDP+5wNGIfd9y9BjK+93dtk93eH8qinNSisJn9YEqnYfd/0ghcASRn7q0MmMkdX8h7qi5mFrTsxJKEcT4/W30hfqSiTZ9ZVoI52MLtexDIAXAgKothUo83xHcAHSjm4SkmESAIDYwA0BPDn8mzXMuJm8z7WN/rwomRjAAPSnb2NF9F6trGty0oky7WQFtNYxRV9fEaL0QH5h1NWc0VMr6Lui0wyJ2l9Hgro1JNDt6ckhfn8MRGfa6wvTftEfgpRkp+bWzEPGlVsbnRNcwXKdbxXmyhwmCb4NXL8cwvPRRmr4am+Ccrhr7BmtWv5t8C4A2Ry33jC9whxIj3l/1NP9BGeUm/yKvrLXl2py9OoBKtYkGPLkGL7sP0ZTg7lFXdSYVCDNy/Ft0tZZpoagbT5NS6dg5L6xNgU+u5mDfc6t6EKGVZmWLNEo5mJcQsneCZ3ErjXnUC1/jxkP2tCbVGFP76/4230sQ5adaXIqXzvpaEta/aOoLb8EKX4Wgc6diQOiiBldii4aIaWmLaj3CCSn8w9gnXFqw== sandro@sandros-MacBook-Pro.local
 
